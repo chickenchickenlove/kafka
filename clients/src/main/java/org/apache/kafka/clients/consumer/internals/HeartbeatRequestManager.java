@@ -477,7 +477,10 @@ public class HeartbeatRequestManager implements RequestManager {
         @Override
         public boolean canSendRequest(final long currentTimeMs) {
             update(currentTimeMs);
-            return heartbeatTimer.isExpired() && super.canSendRequest(currentTimeMs);
+            if (heartbeatTimer.isExpired()) {
+                return true;
+            }
+            return super.canSendRequest(currentTimeMs);
         }
 
         public long timeToNextHeartbeatMs(final long currentTimeMs) {
