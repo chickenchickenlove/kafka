@@ -514,7 +514,9 @@ public class ConsumerNetworkClient implements Closeable {
 
             while (iterator.hasNext()) {
                 ClientRequest request = iterator.next();
-                System.out.println(String.format("[ASH][%s] ConsumerNetworkClient.trySend() -> request : %", Thread.currentThread().getName(), request));
+                System.out.println(
+                        String.format("[ASH][%s] ConsumerNetworkClient.trySend() -> request : %s", Thread.currentThread().getName(), request)
+                );
                 if (client.ready(node, now)) {
                     client.send(request, now);
                     iterator.remove();
