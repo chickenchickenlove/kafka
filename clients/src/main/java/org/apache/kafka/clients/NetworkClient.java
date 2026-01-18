@@ -520,7 +520,7 @@ public class NetworkClient implements KafkaClient {
         // priority
         System.out.println(
                 String.format("[ASH][%s] NetworkClient.isReady()\n" +
-                        "metadataUpdater.isUpdateDue(now): %s, \n" +
+                        "!metadataUpdater.isUpdateDue(now): %s, \n" +
                         "canSendRequest(node.idString(), now): %s \n", 
                         Thread.currentThread().getName(),
                         !metadataUpdater.isUpdateDue(now),
