@@ -1186,7 +1186,7 @@ public abstract class AbstractCoordinator implements Closeable {
 
             System.out.println(String.format("[ASH][%s] AbstractCoordinator.close() -> shouldSendLeaveGroupRequest() -> return True -> client.send(...)", Thread.currentThread().getName()));
             future = client.send(coordinator, request).compose(new LeaveGroupResponseHandler(generation));
-            System.out.println(String.format("[ASH][%s] AbstractCoordinator.close() -> shouldSendLeaveGroupRequest() -> return True -> client.pollNoWakeup(...)", Thread.currentThread().getName()));
+            System.out.println(String.format("[ASH][%s] AbstractCoordinator.close() -> shouldSendLeaveGroupRequest() -> return True -> client.pollNoWakeup(...). coordinator: %s", Thread.currentThread().getName(), coordinator));
             client.pollNoWakeup();
         }
 

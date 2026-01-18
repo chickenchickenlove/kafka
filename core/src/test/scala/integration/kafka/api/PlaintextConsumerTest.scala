@@ -34,14 +34,19 @@ class PlaintextConsumerTest extends AbstractConsumerTest {
     val adminClient = createAdminClient()
     val consumer = createConsumer()
     val listener = new TestConsumerReassignmentListener()
+    System.out.println(String.format("[ASH][%s] TEST -> consumer.subscribe()", Thread.currentThread().getName))
     consumer.subscribe(java.util.List.of(topic), listener)
+    System.out.println(String.format("[ASH][%s] TEST <- consumer.subscribe()", Thread.currentThread().getName))
+    System.out.println(String.format("[ASH][%s] TEST -> awaitRebalance()", Thread.currentThread().getName))
     awaitRebalance(consumer, listener)
-
+    System.out.println(String.format("[ASH][%s] TEST <- awaitRebalance()", Thread.currentThread().getName))
+    
     assertEquals(1, listener.callsToAssigned)
     assertEquals(0, listener.callsToRevoked)
 
     try {
       Thread.currentThread().interrupt()
+      System.out.println(String.format("[ASH][%s] TEST -> consumer.close()", Thread.currentThread().getName))
       assertThrows(classOf[InterruptException], () => consumer.close())
     } finally {
       // Clear the interrupted flag so we don't create problems for subsequent tests.

@@ -561,7 +561,7 @@ public class NetworkClient implements KafkaClient {
             // READY state.)
             if (!canSendRequest(nodeId, now)) {
                 System.out.println(String.format("[ASH][%s] NetworkClient.doSend(), Failed to send a request to node %s which is not ready. request: %s", 
-                        Thread.currentThread().getName(), nodeId, clientRequest));
+                        Thread.currentThread().getName(), clientRequest));
                 throw new IllegalStateException("Attempt to send a request to node " + nodeId + " which is not ready.");
             }
         }
