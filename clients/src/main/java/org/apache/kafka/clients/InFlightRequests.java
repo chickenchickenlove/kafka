@@ -16,6 +16,9 @@
  */
 package org.apache.kafka.clients;
 
+import org.apache.kafka.common.protocol.ApiKeys;
+import org.apache.kafka.common.requests.LeaveGroupRequest;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,6 +46,11 @@ final class InFlightRequests {
      * Add the given request to the queue for the connection it was directed to
      */
     public void add(NetworkClient.InFlightRequest request) {
+        String format = String.format("[ASH][%s] InFlightRequests.add()", Thread.currentThread().getName());
+        System.out.println(format);
+        if (request.header.apiKey().equals(ApiKeys.LEAVE_GROUP)) {
+            System.out.println("ASH maybe match");
+        }
         String destination = request.destination;
         Deque<NetworkClient.InFlightRequest> reqs = this.requests.computeIfAbsent(destination, k -> new ArrayDeque<>());
         reqs.addFirst(request);
@@ -53,6 +61,7 @@ final class InFlightRequests {
      * Get the request queue for the given node
      */
     private Deque<NetworkClient.InFlightRequest> requestQueue(String node) {
+//        System.out.println("Ash requestQueue :");
         Deque<NetworkClient.InFlightRequest> reqs = requests.get(node);
         if (reqs == null || reqs.isEmpty())
             throw new IllegalStateException("There are no in-flight requests for node " + node);
@@ -82,6 +91,7 @@ final class InFlightRequests {
      * @return The request
      */
     public NetworkClient.InFlightRequest completeLastSent(String node) {
+//        System.out.println("Ash completeLastSent :");
         NetworkClient.InFlightRequest inFlightRequest = requestQueue(node).pollFirst();
         inFlightRequestCount.decrementAndGet();
         return inFlightRequest;

@@ -433,6 +433,7 @@ public class KafkaChannel implements AutoCloseable {
     }
 
     public long write() throws IOException {
+        System.out.println(String.format("[ASH][%s] KafkaChannel.write()", Thread.currentThread().getName()));
         if (send == null)
             return 0;
 

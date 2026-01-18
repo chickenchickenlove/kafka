@@ -1015,6 +1015,7 @@ public final class ConsumerCoordinator extends AbstractCoordinator {
      * @throws KafkaException if the rebalance callback throws exception
      */
     public void close(final Timer timer, CloseOptions.GroupMembershipOperation membershipOperation) {
+        System.out.println(String.format("[ASH][%s] ConsumerCoordinator.close()", Thread.currentThread().getName()));
         // we do not need to re-enable wakeups since we are closing already
         client.disableWakeups();
         try {

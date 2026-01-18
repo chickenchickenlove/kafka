@@ -389,6 +389,8 @@ public class Selector implements Selectable, AutoCloseable {
      * @param send The request to send
      */
     public void send(NetworkSend send) {
+        String format = String.format("[ASH][%s] Selector.send(), Payload: %s", Thread.currentThread().getName(), send);
+        System.out.println(format);
         String connectionId = send.destinationId();
         KafkaChannel channel = openOrClosingChannelOrFail(connectionId);
         if (closingChannels.containsKey(connectionId)) {
@@ -443,6 +445,7 @@ public class Selector implements Selectable, AutoCloseable {
      */
     @Override
     public void poll(long timeout) throws IOException {
+        System.out.println(String.format("[ASH][%s] Selector.poll()", Thread.currentThread().getName()));
         if (timeout < 0)
             throw new IllegalArgumentException("timeout should be >= 0");
 
@@ -514,6 +517,7 @@ public class Selector implements Selectable, AutoCloseable {
     void pollSelectionKeys(Set<SelectionKey> selectionKeys,
                            boolean isImmediatelyConnected,
                            long currentTimeNanos) {
+        System.out.println(String.format("[ASH][%s] Selector.pollSelectionKeys()", Thread.currentThread().getName()));
         for (SelectionKey key : determineHandlingOrder(selectionKeys)) {
             KafkaChannel channel = channel(key);
             long channelStartTimeNanos = recordTimePerConnection ? time.nanoseconds() : 0;

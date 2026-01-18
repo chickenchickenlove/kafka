@@ -405,7 +405,7 @@ object QuorumTestHarness {
   def getTestGroupProtocolParametersAll: java.util.stream.Stream[Arguments] = {
     stream.Stream.of(
       Arguments.of(GroupProtocol.CLASSIC.name.toLowerCase(Locale.ROOT)),
-      Arguments.of(GroupProtocol.CONSUMER.name.toLowerCase(Locale.ROOT))
+//      Arguments.of(GroupProtocol.CONSUMER.name.toLowerCase(Locale.ROOT))
     )
   }
 

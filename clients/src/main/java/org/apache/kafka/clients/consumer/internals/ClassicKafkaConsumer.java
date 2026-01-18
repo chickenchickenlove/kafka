@@ -1104,6 +1104,7 @@ public class ClassicKafkaConsumer<K, V> implements ConsumerDelegate<K, V> {
 
     @Override
     public void close() {
+        System.out.println(String.format("[ASH][%s] ClassicKafkaConsumer.close()", Thread.currentThread().getName()));
         close(CloseOptions.timeout(Duration.ofMillis(DEFAULT_CLOSE_TIMEOUT_MS)));
     }
 

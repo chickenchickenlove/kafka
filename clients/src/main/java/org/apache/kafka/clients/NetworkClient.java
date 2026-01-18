@@ -549,6 +549,7 @@ public class NetworkClient implements KafkaClient {
     }
 
     private void doSend(ClientRequest clientRequest, boolean isInternalRequest, long now) {
+        System.out.println(String.format("[ASH][%s] NetworkClient.doSend()", Thread.currentThread().getName()));
         ensureActive();
         String nodeId = clientRequest.destination();
         if (!isInternalRequest) {
@@ -614,6 +615,8 @@ public class NetworkClient implements KafkaClient {
                 send,
                 now);
         this.inFlightRequests.add(inFlightRequest);
+        String format = String.format("[ASH][%s] NetworkClient.doSend() -> selector.send(), Payload: %s", Thread.currentThread().getName(), clientRequest);
+        System.out.println(format);
         selector.send(new NetworkSend(clientRequest.destination(), send));
     }
 
@@ -628,6 +631,7 @@ public class NetworkClient implements KafkaClient {
      */
     @Override
     public List<ClientResponse> poll(long timeout, long now) {
+        System.out.println(String.format("[ASH][%s] NetworkClient.poll()", Thread.currentThread().getName()));
         ensureActive();
 
         if (!abortedSends.isEmpty()) {
@@ -642,6 +646,7 @@ public class NetworkClient implements KafkaClient {
         long metadataTimeout = metadataUpdater.maybeUpdate(now);
         long telemetryTimeout = telemetrySender != null ? telemetrySender.maybeUpdate(now) : Integer.MAX_VALUE;
         try {
+            System.out.println(String.format("[ASH][%s] NetworkClient.poll() -> selector.poll()", Thread.currentThread().getName()));
             this.selector.poll(Utils.min(timeout, metadataTimeout, telemetryTimeout, defaultRequestTimeoutMs));
         } catch (IOException e) {
             log.error("Unexpected error during I/O", e);

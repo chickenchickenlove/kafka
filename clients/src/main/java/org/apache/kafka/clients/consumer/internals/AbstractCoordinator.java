@@ -433,13 +433,16 @@ public abstract class AbstractCoordinator implements Closeable {
         synchronized (this) {
             if (heartbeatThread == null)
                 return;
+            System.out.println(String.format("[ASH][%s] AbstractCoordinator.closeHeartbeatThread() -> heartbeatThread.close()", Thread.currentThread().getName()));
             heartbeatThread.close();
+            System.out.println(String.format("[ASH][%s] AbstractCoordinator.closeHeartbeatThread() <- heartbeatThread.close()", Thread.currentThread().getName()));
             thread = heartbeatThread;
             heartbeatThread = null;
         }
         try {
             thread.join();
         } catch (InterruptedException e) {
+            System.out.println(String.format("[ASH][%s] Interrupted while waiting for consumer heartbeat thread to close", Thread.currentThread().getName()));
             log.warn("Interrupted while waiting for consumer heartbeat thread to close");
             throw new InterruptException(e);
         }
@@ -1128,12 +1131,14 @@ public abstract class AbstractCoordinator implements Closeable {
      */
     protected void close(Timer timer, CloseOptions.GroupMembershipOperation membershipOperation) {
         try {
+            System.out.println(String.format("[ASH][%s] AbstractCoordinator.close() -> closeHeartbeatThread()", Thread.currentThread().getName()));
             closeHeartbeatThread();
         } finally {
             // Synchronize after closing the heartbeat thread since heartbeat thread
             // needs this lock to complete and terminate after close flag is set.
             synchronized (this) {
                 onLeavePrepare();
+                System.out.println(String.format("[ASH][%s] AbstractCoordinator.close() -> maybeLeaveGroup()", Thread.currentThread().getName()));
                 maybeLeaveGroup(membershipOperation, "the consumer is being closed");
 
                 // At this point, there may be pending commits (async commits or sync commits that were
@@ -1169,8 +1174,9 @@ public abstract class AbstractCoordinator implements Closeable {
      */
     public synchronized RequestFuture<Void> maybeLeaveGroup(CloseOptions.GroupMembershipOperation membershipOperation, String leaveReason) {
         RequestFuture<Void> future = null;
-
+        System.out.println(String.format("[ASH][%s] AbstractCoordinator.close() -> shouldSendLeaveGroupRequest()", Thread.currentThread().getName()));
         if (shouldSendLeaveGroupRequest(membershipOperation)) {
+            System.out.println(String.format("[ASH][%s] AbstractCoordinator.close() -> shouldSendLeaveGroupRequest() -> return True", Thread.currentThread().getName()));
             log.info("Member {} sending LeaveGroup request to coordinator {} due to {}",
                 generation.memberId, coordinator, leaveReason);
             LeaveGroupRequest.Builder request = new LeaveGroupRequest.Builder(
@@ -1178,10 +1184,13 @@ public abstract class AbstractCoordinator implements Closeable {
                 Collections.singletonList(new MemberIdentity().setMemberId(generation.memberId).setReason(JoinGroupRequest.maybeTruncateReason(leaveReason)))
             );
 
+            System.out.println(String.format("[ASH][%s] AbstractCoordinator.close() -> shouldSendLeaveGroupRequest() -> return True -> client.send(...)", Thread.currentThread().getName()));
             future = client.send(coordinator, request).compose(new LeaveGroupResponseHandler(generation));
+            System.out.println(String.format("[ASH][%s] AbstractCoordinator.close() -> shouldSendLeaveGroupRequest() -> return True -> client.pollNoWakeup(...)", Thread.currentThread().getName()));
             client.pollNoWakeup();
         }
 
+        System.out.println(String.format("[ASH][%s] AbstractCoordinator.close() -> resetGenerationOnLeaveGroup()", Thread.currentThread().getName()));
         resetGenerationOnLeaveGroup();
 
         return future;
@@ -1191,6 +1200,8 @@ public abstract class AbstractCoordinator implements Closeable {
         if (!coordinatorUnknown() && state != MemberState.UNJOINED && generation.hasMemberId()) {
             return membershipOperation == LEAVE_GROUP || (isDynamicMember() && membershipOperation == DEFAULT);
         } else {
+            String format = String.format("ASH shouldSendLeaveGroupRequest false -> coordinatorUnknown(): %s, state: %s, genernatione.hasMemberId(): %s", coordinatorUnknown(), state.toString(), generation.hasMemberId());
+            System.out.println(format);
             return false;
         }
     }
@@ -1206,6 +1217,7 @@ public abstract class AbstractCoordinator implements Closeable {
 
         @Override
         public void handle(LeaveGroupResponse leaveResponse, RequestFuture<Void> future) {
+            System.out.println(String.format("[ASH][%s] LeaveGroupResponseHandler.handle()", Thread.currentThread().getName()));
             final List<MemberResponse> members = leaveResponse.memberResponses();
             if (members.size() > 1) {
                 future.raise(new IllegalStateException("The expected leave group response " +
@@ -1481,8 +1493,11 @@ public abstract class AbstractCoordinator implements Closeable {
                 log.debug("Heartbeat thread started");
                 while (true) {
                     synchronized (AbstractCoordinator.this) {
-                        if (isClosed())
+                        if (isClosed()) {
+                            System.out.println(String.format("[ASH][%s] Heartbeat.run()", Thread.currentThread().getName()));
                             return;
+                        }
+                            
 
                         if (!isEnabled()) {
                             AbstractCoordinator.this.wait();
