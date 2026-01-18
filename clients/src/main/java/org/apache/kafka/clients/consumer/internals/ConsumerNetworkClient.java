@@ -508,6 +508,11 @@ public class ConsumerNetworkClient implements Closeable {
 
         // send any requests that can be sent now
         for (Node node : unsent.nodes()) {
+            System.out.println(
+                    String.format("[ASH][%s] ConsumerNetworkClient.trySend() -> new Node : %s" +
+                            "Node Host: %s," +
+                            "Node Port: %s", Thread.currentThread().getName(), node.id(), node.host(), node.port())
+            );
             Iterator<ClientRequest> iterator = unsent.requestIterator(node);
             if (iterator.hasNext())
                 pollDelayMs = Math.min(pollDelayMs, client.pollDelayMs(node, now));
@@ -516,9 +521,13 @@ public class ConsumerNetworkClient implements Closeable {
                 ClientRequest request = iterator.next();
                 boolean isReady = client.ready(node, now);
                 System.out.println(
-                        String.format("[ASH][%s] ConsumerNetworkClient.trySend() -> request : %s, Node: %s, Node is ready : %s", Thread.currentThread().getName(), request, node.id(), isReady)
+                        String.format("[ASH][%s] ConsumerNetworkClient.trySend() -> request : %s, " +
+                                "Node: %s, " +
+                                "Node Host: %s, " +
+                                "Node Port: %s, " +
+                                "Node is ready : %s", Thread.currentThread().getName(), request, node.id(), node.host(), node.port(), isReady)
                 );
-
+                
                 if (isReady) {
                     client.send(request, now);
                     iterator.remove();
