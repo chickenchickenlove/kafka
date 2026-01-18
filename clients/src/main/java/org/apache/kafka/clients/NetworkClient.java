@@ -549,7 +549,7 @@ public class NetworkClient implements KafkaClient {
     }
 
     private void doSend(ClientRequest clientRequest, boolean isInternalRequest, long now) {
-        System.out.println(String.format("[ASH][%s] NetworkClient.doSend()", Thread.currentThread().getName()));
+        System.out.println(String.format("[ASH][%s] NetworkClient.doSend(), request: %s", Thread.currentThread().getName(), clientRequest));
         ensureActive();
         String nodeId = clientRequest.destination();
         if (!isInternalRequest) {
@@ -559,8 +559,11 @@ public class NetworkClient implements KafkaClient {
             // will be slightly different for some internal requests (for
             // example, ApiVersionsRequests can be sent prior to being in
             // READY state.)
-            if (!canSendRequest(nodeId, now))
+            if (!canSendRequest(nodeId, now)) {
+                System.out.println(String.format("[ASH][%s] NetworkClient.doSend(), Failed to send a request to node %s which is not ready. request: %s", 
+                        Thread.currentThread().getName(), nodeId, clientRequest));
                 throw new IllegalStateException("Attempt to send a request to node " + nodeId + " which is not ready.");
+            }
         }
         AbstractRequest.Builder<?> builder = clientRequest.requestBuilder();
         try {

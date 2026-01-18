@@ -130,6 +130,7 @@ public class ConsumerNetworkClient implements Closeable {
         RequestFutureCompletionHandler completionHandler = new RequestFutureCompletionHandler();
         ClientRequest clientRequest = client.newClientRequest(node.idString(), requestBuilder, now, true,
             requestTimeoutMs, completionHandler);
+        System.out.println(String.format("[ASH][%s] ConsumerNetworkClient.send() -> unsent.put(). clientRequest: %s", Thread.currentThread().getName(), clientRequest));
         unsent.put(node, clientRequest);
 
         // wakeup the client in case it is blocking in poll so that we can send the queued request
@@ -260,6 +261,7 @@ public class ConsumerNetworkClient implements Closeable {
      * @param disableWakeup If TRUE disable triggering wake-ups
      */
     public void poll(Timer timer, PollCondition pollCondition, boolean disableWakeup) {
+        System.out.println(String.format("[ASH][%s] ConsumerNetworkClient.poll()", Thread.currentThread().getName()));
         // there may be handlers which need to be invoked if we woke up the previous call to poll
         firePendingCompletedRequests();
 
@@ -512,6 +514,7 @@ public class ConsumerNetworkClient implements Closeable {
 
             while (iterator.hasNext()) {
                 ClientRequest request = iterator.next();
+                System.out.println(String.format("[ASH][%s] ConsumerNetworkClient.trySend() -> request : %", Thread.currentThread().getName(), request));
                 if (client.ready(node, now)) {
                     client.send(request, now);
                     iterator.remove();
@@ -534,6 +537,7 @@ public class ConsumerNetworkClient implements Closeable {
 
     private void maybeThrowInterruptException() {
         if (Thread.interrupted()) {
+            System.out.println(String.format("[ASH][%s] ConsumerNetworkClient.maybeThrowInterruptException() -> throw interrut actually.", Thread.currentThread().getName()));
             throw new InterruptException(new InterruptedException());
         }
     }
