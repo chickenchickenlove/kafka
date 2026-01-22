@@ -99,7 +99,7 @@ class DynamicConnectionQuotaTest extends BaseRequestTest {
     props.put(SocketServerConfigs.MAX_CONNECTIONS_PER_IP_CONFIG, maxConnectionsPerIP.toString)
     reconfigureServers(props, perBrokerConfig = false, (SocketServerConfigs.MAX_CONNECTIONS_PER_IP_CONFIG, maxConnectionsPerIP.toString))
 
-    System.out.println(String.format("[ASH][%s] TEST -> verifyMaxConnections #1", Thread.currentThread().getName))
+    System.err.println(String.format("[ASH][%s] TEST -> verifyMaxConnections #1", Thread.currentThread().getName))
     verifyMaxConnections(maxConnectionsPerIP, connectAndVerify)
 
     // Increase MaxConnectionsPerIpOverrides for localhost to 7
@@ -107,7 +107,7 @@ class DynamicConnectionQuotaTest extends BaseRequestTest {
     props.put(SocketServerConfigs.MAX_CONNECTIONS_PER_IP_OVERRIDES_CONFIG, s"localhost:$maxConnectionsPerIPOverride")
     reconfigureServers(props, perBrokerConfig = false, (SocketServerConfigs.MAX_CONNECTIONS_PER_IP_OVERRIDES_CONFIG, s"localhost:$maxConnectionsPerIPOverride"))
 
-    System.out.println(String.format("[ASH][%s] TEST -> verifyMaxConnections #2", Thread.currentThread().getName))
+    System.err.println(String.format("[ASH][%s] TEST -> verifyMaxConnections #2", Thread.currentThread().getName))
     verifyMaxConnections(maxConnectionsPerIPOverride, connectAndVerify)
   }
 
@@ -344,30 +344,77 @@ class DynamicConnectionQuotaTest extends BaseRequestTest {
   private def verifyMaxConnections(maxConnections: Int, connectWithFailure: () => Unit): Unit = {
     val initialConnectionCount = connectionCount
 
+    def sockInfo(s: Socket): String = {
+      val localIp  = s.getLocalAddress.getHostAddress
+      val localPort = s.getLocalPort
+      val remoteIp = s.getInetAddress.getHostAddress
+      val remotePort = s.getPort
+      s"local=$localIp:$localPort remote=$remoteIp:$remotePort remoteSock=${s.getRemoteSocketAddress}"
+    }
+
+    def dump(tag: String, conns: Seq[Socket]): Unit = {
+      val openLocal = conns.count(s => !s.isClosed)
+      System.err.println(
+        s"[DynamicConnectionQuotaTest] $tag " +
+          s"connectionCount=$connectionCount initial=$initialConnectionCount max=$maxConnections " +
+          s"conns.size=${conns.size} openLocal=$openLocal"
+      )
+    }
+
+    dump("start", Seq.empty)
+
     //create connections up to maxConnectionsPerIP - 1, leave space for one connection
     var conns = (connectionCount until (maxConnections - 1)).map(_ => connect("PLAINTEXT"))
+    conns.zipWithIndex.foreach { case (s, idx) =>
+      System.err.println(s"[DynamicConnectionQuotaTest] conns[$idx] ${sockInfo(s)}")
+    }
 
+    dump("before createAndVerifyConnection 1", conns)
     // produce should succeed on a new connection
     createAndVerifyConnection()
+    dump("after createAndVerifyConnection 1", conns)
 
     TestUtils.waitUntilTrue(() => connectionCount == (maxConnections - 1), "produce request connection is not closed")
-    conns = conns :+ connect("PLAINTEXT")
+    dump("after wait connCount == max-1", conns)
+
+    val s2 = connect("PLAINTEXT")
+    System.err.println(s"[DynamicConnectionQuotaTest] extra connect ${sockInfo(s2)}")
+//    conns = conns :+ connect("PLAINTEXT")
+    conns = conns :+ s2
+    dump("after extra connect", conns)
+
 
     // now try one more (should fail)
+    dump("before expected failure", conns)
     assertThrows(classOf[IOException], () => connectWithFailure.apply())
+    dump("after expected failure", conns)
+
 
     //close one connection
+    System.err.println(s"[DynamicConnectionQuotaTest] closing conns[0] ${sockInfo(conns.head)}")
     conns.head.close()
     TestUtils.waitUntilTrue(() => connectionCount == (maxConnections - 1), "connection is not closed")
+    dump("after close one + wait", conns)
+
+    dump("before createAndVerifyConnection 2", conns)
     createAndVerifyConnection()
+    dump("after createAndVerifyConnection 2", conns)
 
     conns.foreach(_.close())
     TestUtils.waitUntilTrue(() => initialConnectionCount == connectionCount, "Connections not closed")
+    dump("end", conns)
+
   }
 
   private def connectAndVerify(listener: String, ignoreIOExceptions: Boolean): Unit = {
     val socket = connect(listener)
     try {
+      System.err.println(
+        s"[DynamicConnectionQuotaTest] connectAndVerify " +
+          s"localIp=${socket.getLocalAddress.getHostAddress}:${socket.getLocalPort} " +
+          s"remoteIp=${socket.getInetAddress.getHostAddress}:${socket.getPort} " +
+          s"remoteSock=${socket.getRemoteSocketAddress}"
+      )
       sendAndReceive[ProduceResponse](produceRequest, socket)
     } catch {
       // IP rate throttling can lead to disconnected sockets on client's end
