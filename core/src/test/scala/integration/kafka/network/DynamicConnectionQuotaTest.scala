@@ -99,6 +99,7 @@ class DynamicConnectionQuotaTest extends BaseRequestTest {
     props.put(SocketServerConfigs.MAX_CONNECTIONS_PER_IP_CONFIG, maxConnectionsPerIP.toString)
     reconfigureServers(props, perBrokerConfig = false, (SocketServerConfigs.MAX_CONNECTIONS_PER_IP_CONFIG, maxConnectionsPerIP.toString))
 
+    System.out.println(String.format("[ASH][%s] TEST -> verifyMaxConnections #1", Thread.currentThread().getName))
     verifyMaxConnections(maxConnectionsPerIP, connectAndVerify)
 
     // Increase MaxConnectionsPerIpOverrides for localhost to 7
@@ -106,6 +107,7 @@ class DynamicConnectionQuotaTest extends BaseRequestTest {
     props.put(SocketServerConfigs.MAX_CONNECTIONS_PER_IP_OVERRIDES_CONFIG, s"localhost:$maxConnectionsPerIPOverride")
     reconfigureServers(props, perBrokerConfig = false, (SocketServerConfigs.MAX_CONNECTIONS_PER_IP_OVERRIDES_CONFIG, s"localhost:$maxConnectionsPerIPOverride"))
 
+    System.out.println(String.format("[ASH][%s] TEST -> verifyMaxConnections #2", Thread.currentThread().getName))
     verifyMaxConnections(maxConnectionsPerIPOverride, connectAndVerify)
   }
 
