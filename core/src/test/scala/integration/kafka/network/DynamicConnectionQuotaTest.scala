@@ -352,6 +352,35 @@ class DynamicConnectionQuotaTest extends BaseRequestTest {
       s"local=$localIp:$localPort remote=$remoteIp:$remotePort remoteSock=${s.getRemoteSocketAddress}"
     }
 
+    // TIMEOUT: Just wating => connection alive.
+    // EOF: for 'FIN'
+    // SOCKET_EX: for 'RST/etc socket error'
+    def probe(tag: String, s: Socket): Unit = {
+      val prev = s.getSoTimeout
+      s.setSoTimeout(50)
+      try {
+        val b = s.getInputStream.read()
+        val result =
+          if (b == -1) "EOF"
+          else s"DATA($b)" // 보통 나오면 안 됨
+        System.err.println(s"[DynamicConnectionQuotaTest] probe $tag ${sockInfo(s)} result=$result")
+      } catch {
+        case _: java.net.SocketTimeoutException =>
+          System.err.println(s"[DynamicConnectionQuotaTest] probe $tag ${sockInfo(s)} result=TIMEOUT")
+        case e: java.net.SocketException =>
+          System.err.println(s"[DynamicConnectionQuotaTest] probe $tag ${sockInfo(s)} result=SOCKET_EX msg=${e.getMessage}")
+        case t: Throwable =>
+          System.err.println(s"[DynamicConnectionQuotaTest] probe $tag ${sockInfo(s)} result=EX msg=${t.getClass.getName}:${t.getMessage}")
+      } finally {
+        s.setSoTimeout(prev)
+      }
+    }
+
+    def probeAll(tag: String, conns: Seq[Socket]): Unit = {
+      System.err.println(s"[DynamicConnectionQuotaTest] probeAll $tag connectionCount=$connectionCount conns.size=${conns.size}")
+      conns.zipWithIndex.foreach { case (s, i) => probe(s"$tag conns[$i]", s) }
+    }
+    
     def dump(tag: String, conns: Seq[Socket]): Unit = {
       val openLocal = conns.count(s => !s.isClosed)
       System.err.println(
@@ -369,6 +398,9 @@ class DynamicConnectionQuotaTest extends BaseRequestTest {
       System.err.println(s"[DynamicConnectionQuotaTest] conns[$idx] ${sockInfo(s)}")
     }
 
+    // Here - is connection alive?
+    probeAll("after prefill conns", conns)
+    
     dump("before createAndVerifyConnection 1", conns)
     // produce should succeed on a new connection
     createAndVerifyConnection()
@@ -384,6 +416,9 @@ class DynamicConnectionQuotaTest extends BaseRequestTest {
     dump("after extra connect", conns)
 
 
+    // here- quota 경계에 걸린 뒤, 새로 만든 연결이 즉시 죽는지 확인
+    probeAll("after extra connect", conns)
+    
     // now try one more (should fail)
     dump("before expected failure", conns)
     assertThrows(classOf[IOException], () => connectWithFailure.apply())
