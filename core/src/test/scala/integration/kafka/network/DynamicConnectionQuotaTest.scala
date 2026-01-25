@@ -84,6 +84,12 @@ class DynamicConnectionQuotaTest extends BaseRequestTest {
   @Flaky("KAFKA-17999")
   @Test
   def testDynamicConnectionQuota(): Unit = {
+
+    org.apache.logging.log4j.core.config.Configurator.setLevel("kafka.network", org.apache.logging.log4j.Level.DEBUG)
+    org.apache.logging.log4j.core.config.Configurator.setLevel("kafka.network.ConnectionQuotas", org.apache.logging.log4j.Level.DEBUG)
+    org.apache.logging.log4j.core.config.Configurator.setLevel("kafka.network.DataPlaneAcceptor", org.apache.logging.log4j.Level.DEBUG)
+    org.apache.logging.log4j.core.config.Configurator.setLevel("kafka.network.SocketServer", org.apache.logging.log4j.Level.DEBUG)
+    
     val maxConnectionsPerIP = 5
 
     def connectAndVerify(): Unit = {
