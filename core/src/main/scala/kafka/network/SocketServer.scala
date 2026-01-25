@@ -1315,6 +1315,7 @@ class ConnectionQuotas(config: KafkaConfig, time: Time, metrics: Metrics) extend
         listenerCounts.put(listenerName, listenerCounts(listenerName) + 1)
       }
 
+      val qid = System.identityHashCode(this)
       val addrStr = s"${address.getHostAddress}(${address.getClass.getSimpleName})"
       val overrideHit = maxConnectionsPerIpOverrides.get(address).map(_.toString).getOrElse("<MISS>")
       val overridesDump =
@@ -1324,14 +1325,6 @@ class ConnectionQuotas(config: KafkaConfig, time: Time, metrics: Metrics) extend
 
       debug(s"[ConnectionQuotas] inc listener=$listenerName addr=$addrStr " +
           s"countBefore=$count overrideHit=$overrideHit default=$defaultMaxConnectionsPerIp overrides=$overridesDump")
-
-      val qid = System.identityHashCode(this)
-      val addrStr = s"${address.getHostAddress}(${address.getClass.getSimpleName})"
-      val overrideHit = maxConnectionsPerIpOverrides.get(address).map(_.toString).getOrElse("<MISS>")
-      val overridesDump =
-        maxConnectionsPerIpOverrides
-          .map { case (k, v) => s"${k.getHostAddress}(${k.getClass.getSimpleName})=$v" }
-          .mkString("[", ", ", "]")
 
       info(s"[ConnectionQuotas][$qid][${Thread.currentThread.getName}] inc " +
         s"listener=$listenerName addr=$addrStr countBefore=$count overrideHit=$overrideHit " +
@@ -1356,10 +1349,6 @@ class ConnectionQuotas(config: KafkaConfig, time: Time, metrics: Metrics) extend
       val addr = InetAddress.getByName(host)
       info(s"[ConnectionQuotas][$qid][${Thread.currentThread.getName}] Resolved override host=$host " +
         s"to addr=${addr.getHostAddress} (${addr.getClass.getSimpleName}), count=$count")
-    }
-    overrideQuotas.foreach { case (host, count) =>
-      val addr = InetAddress.getByName(host)
-      info(s"Resolved override host=$host to addr=${addr.getHostAddress} (${addr.getClass.getSimpleName}), count=$count")
     }
     maxConnectionsPerIpOverrides = overrideQuotas.map { case (host, count) => (InetAddress.getByName(host), count) }
 
