@@ -1324,6 +1324,19 @@ class ConnectionQuotas(config: KafkaConfig, time: Time, metrics: Metrics) extend
 
       debug(s"[ConnectionQuotas] inc listener=$listenerName addr=$addrStr " +
           s"countBefore=$count overrideHit=$overrideHit default=$defaultMaxConnectionsPerIp overrides=$overridesDump")
+
+      val qid = System.identityHashCode(this)
+      val addrStr = s"${address.getHostAddress}(${address.getClass.getSimpleName})"
+      val overrideHit = maxConnectionsPerIpOverrides.get(address).map(_.toString).getOrElse("<MISS>")
+      val overridesDump =
+        maxConnectionsPerIpOverrides
+          .map { case (k, v) => s"${k.getHostAddress}(${k.getClass.getSimpleName})=$v" }
+          .mkString("[", ", ", "]")
+
+      info(s"[ConnectionQuotas][$qid][${Thread.currentThread.getName}] inc " +
+        s"listener=$listenerName addr=$addrStr countBefore=$count overrideHit=$overrideHit " +
+        s"default=$defaultMaxConnectionsPerIp overrides=$overridesDump")
+    
       val max = maxConnectionsPerIpOverrides.getOrElse(address, defaultMaxConnectionsPerIp)
       if (count >= max)
         throw new TooManyConnectionsException(address, max)
@@ -1335,11 +1348,25 @@ class ConnectionQuotas(config: KafkaConfig, time: Time, metrics: Metrics) extend
   }
 
   private[network] def updateMaxConnectionsPerIpOverride(overrideQuotas: Map[String, Int]): Unit = {
+    val qid = System.identityHashCode(this)
+    info(s"[ConnectionQuotas][$qid][${Thread.currentThread.getName}] updateMaxConnectionsPerIpOverride start " +
+      s"overrideQuotas=" + overrideQuotas.map { case (k, v) => s"$k=$v" }.mkString("[", ", ", "]"))
+
+    overrideQuotas.foreach { case (host, count) =>
+      val addr = InetAddress.getByName(host)
+      info(s"[ConnectionQuotas][$qid][${Thread.currentThread.getName}] Resolved override host=$host " +
+        s"to addr=${addr.getHostAddress} (${addr.getClass.getSimpleName}), count=$count")
+    }
     overrideQuotas.foreach { case (host, count) =>
       val addr = InetAddress.getByName(host)
       info(s"Resolved override host=$host to addr=${addr.getHostAddress} (${addr.getClass.getSimpleName}), count=$count")
     }
     maxConnectionsPerIpOverrides = overrideQuotas.map { case (host, count) => (InetAddress.getByName(host), count) }
+
+    info(s"[ConnectionQuotas][$qid][${Thread.currentThread.getName}] updateMaxConnectionsPerIpOverride applied " +
+      "overrides=" + maxConnectionsPerIpOverrides.map { case (k, v) =>
+      s"${k.getHostAddress}(${k.getClass.getSimpleName})=$v"
+    }.mkString("[", ", ", "]"))
   }
 
   private[network] def updateBrokerMaxConnections(maxConnections: Int): Unit = {
