@@ -1315,17 +1315,15 @@ class ConnectionQuotas(config: KafkaConfig, time: Time, metrics: Metrics) extend
         listenerCounts.put(listenerName, listenerCounts(listenerName) + 1)
       }
 
-      if (logger.isDebugEnabled) {
-        val addrStr = s"${address.getHostAddress}(${address.getClass.getSimpleName})"
-        val overrideHit = maxConnectionsPerIpOverrides.get(address).map(_.toString).getOrElse("<MISS>")
-        val overridesDump =
-          maxConnectionsPerIpOverrides
-            .map { case (k, v) => s"${k.getHostAddress}(${k.getClass.getSimpleName})=$v" }
-            .mkString("[", ", ", "]")
+      val addrStr = s"${address.getHostAddress}(${address.getClass.getSimpleName})"
+      val overrideHit = maxConnectionsPerIpOverrides.get(address).map(_.toString).getOrElse("<MISS>")
+      val overridesDump =
+        maxConnectionsPerIpOverrides
+          .map { case (k, v) => s"${k.getHostAddress}(${k.getClass.getSimpleName})=$v" }
+          .mkString("[", ", ", "]")
 
-        logger.debug(s"[ConnectionQuotas] inc listener=$listenerName addr=$addrStr " +
+      debug(s"[ConnectionQuotas] inc listener=$listenerName addr=$addrStr " +
           s"countBefore=$count overrideHit=$overrideHit default=$defaultMaxConnectionsPerIp overrides=$overridesDump")
-      }
       val max = maxConnectionsPerIpOverrides.getOrElse(address, defaultMaxConnectionsPerIp)
       if (count >= max)
         throw new TooManyConnectionsException(address, max)
