@@ -515,7 +515,19 @@ class DynamicConnectionQuotaTest extends BaseRequestTest {
     val quotas = brokers.head.socketServer.connectionQuotas
 
     TestUtils.waitUntilTrue(
-      () => quotas.maxConnectionsPerIpOverrideForIp(addr).contains(expected),
+      () => {
+        val now = System.currentTimeMillis()
+        val current = quotas.maxConnectionsPerIpOverrideForIp(addr)
+
+        if (now - lastLogMs >= 1000) {
+          lastLogMs = now
+          System.err.println(
+            s"[DynamicConnectionQuotaTest] waiting override ip=$ip expected=$expected current=$current elapsedMs=${now - start}"
+          )
+        }
+
+        current.contains(expected)
+      },
       s"maxConnectionsPerIpOverrides not applied yet for ip=$ip (expected=$expected, current=${quotas.maxConnectionsPerIpOverrideForIp(addr)})",
       timeoutMs
     )
