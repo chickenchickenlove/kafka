@@ -1308,9 +1308,23 @@ class ConnectionQuotas(config: KafkaConfig, time: Time, metrics: Metrics) extend
       recordIpConnectionMaybeThrottle(listenerName, address)
       val count = counts.getOrElseUpdate(address, 0)
       counts.put(address, count + 1)
+      
+      // maybe total count leaky.
       totalCount += 1
       if (listenerCounts.contains(listenerName)) {
         listenerCounts.put(listenerName, listenerCounts(listenerName) + 1)
+      }
+
+      if (logger.isDebugEnabled) {
+        val addrStr = s"${address.getHostAddress}(${address.getClass.getSimpleName})"
+        val overrideHit = maxConnectionsPerIpOverrides.get(address).map(_.toString).getOrElse("<MISS>")
+        val overridesDump =
+          maxConnectionsPerIpOverrides
+            .map { case (k, v) => s"${k.getHostAddress}(${k.getClass.getSimpleName})=$v" }
+            .mkString("[", ", ", "]")
+
+        logger.debug(s"[ConnectionQuotas] inc listener=$listenerName addr=$addrStr " +
+          s"countBefore=$count overrideHit=$overrideHit default=$defaultMaxConnectionsPerIp overrides=$overridesDump")
       }
       val max = maxConnectionsPerIpOverrides.getOrElse(address, defaultMaxConnectionsPerIp)
       if (count >= max)
@@ -1323,6 +1337,10 @@ class ConnectionQuotas(config: KafkaConfig, time: Time, metrics: Metrics) extend
   }
 
   private[network] def updateMaxConnectionsPerIpOverride(overrideQuotas: Map[String, Int]): Unit = {
+    overrideQuotas.foreach { case (host, count) =>
+      val addr = InetAddress.getByName(host)
+      info(s"Resolved override host=$host to addr=${addr.getHostAddress} (${addr.getClass.getSimpleName}), count=$count")
+    }
     maxConnectionsPerIpOverrides = overrideQuotas.map { case (host, count) => (InetAddress.getByName(host), count) }
   }
 
