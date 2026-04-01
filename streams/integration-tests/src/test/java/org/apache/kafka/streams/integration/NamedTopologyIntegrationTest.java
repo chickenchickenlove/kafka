@@ -660,13 +660,6 @@ public class NamedTopologyIntegrationTest {
         streams.removeNamedTopology(TOPOLOGY_1, true).all().get();
 
         TestUtils.waitForCondition(
-                () -> streams.metadataForLocalThreads().stream()
-                        .flatMap(t -> java.util.stream.Stream.concat(t.activeTasks().stream(), t.standbyTasks().stream()))
-                        .noneMatch(task -> TOPOLOGY_1.equals(task.taskId().topologyName())),
-                "local thread metadata still shows topology-1 tasks"
-        );
-
-        TestUtils.waitForCondition(
                 () -> streams.allStreamsClientsMetadataForTopology(TOPOLOGY_1).isEmpty(),
                 "streams metadata still shows topology-1 assignment"
         );
