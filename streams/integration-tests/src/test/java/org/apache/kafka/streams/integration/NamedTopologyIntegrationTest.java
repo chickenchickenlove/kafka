@@ -658,6 +658,14 @@ public class NamedTopologyIntegrationTest {
         assertThat(waitUntilMinKeyValueRecordsReceived(consumerConfig, COUNT_OUTPUT, 5), equalTo(COUNT_OUTPUT_DATA));
         assertThat(waitUntilMinKeyValueRecordsReceived(consumerConfig, SUM_OUTPUT, 5), equalTo(SUM_OUTPUT_DATA));
         streams.removeNamedTopology(TOPOLOGY_1, true).all().get();
+        
+        IntegrationTestUtils.waitUntilStreamsHasPolled(streams, 2);
+
+        
+        TestUtils.waitForCondition(
+                () -> streams.allStreamsClientsMetadataForTopology(TOPOLOGY_1).isEmpty(),
+                "topology-1 metadata still present after remove"
+        );
         streams.cleanUpNamedTopology(TOPOLOGY_1);
 
         CLUSTER.getAllTopicsInCluster().stream().filter(t -> t.contains("-changelog") || t.contains("-repartition")).forEach(t -> {
