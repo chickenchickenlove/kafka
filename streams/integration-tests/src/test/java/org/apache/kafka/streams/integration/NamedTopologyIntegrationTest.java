@@ -658,14 +658,19 @@ public class NamedTopologyIntegrationTest {
         assertThat(waitUntilMinKeyValueRecordsReceived(consumerConfig, COUNT_OUTPUT, 5), equalTo(COUNT_OUTPUT_DATA));
         assertThat(waitUntilMinKeyValueRecordsReceived(consumerConfig, SUM_OUTPUT, 5), equalTo(SUM_OUTPUT_DATA));
         streams.removeNamedTopology(TOPOLOGY_1, true).all().get();
-        
-        IntegrationTestUtils.waitUntilStreamsHasPolled(streams, 2);
 
-        
+        TestUtils.waitForCondition(
+                () -> streams.metadataForLocalThreads().stream()
+                        .flatMap(t -> java.util.stream.Stream.concat(t.activeTasks().stream(), t.standbyTasks().stream()))
+                        .noneMatch(task -> TOPOLOGY_1.equals(task.taskId().topologyName())),
+                "local thread metadata still shows topology-1 tasks"
+        );
+
         TestUtils.waitForCondition(
                 () -> streams.allStreamsClientsMetadataForTopology(TOPOLOGY_1).isEmpty(),
-                "topology-1 metadata still present after remove"
+                "streams metadata still shows topology-1 assignment"
         );
+
         streams.cleanUpNamedTopology(TOPOLOGY_1);
 
         CLUSTER.getAllTopicsInCluster().stream().filter(t -> t.contains("-changelog") || t.contains("-repartition")).forEach(t -> {
