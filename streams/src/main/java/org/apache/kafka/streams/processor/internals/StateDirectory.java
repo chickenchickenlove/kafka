@@ -738,7 +738,24 @@ public class StateDirectory implements AutoCloseable {
         try {
             final Set<TaskId> taskKeys = taskOffsetSums.keySet();
             taskKeys.removeIf(taskId -> taskId.topologyName().equals(topologyName));
+            log.info("{} Clearing local state for NamedTopology {} at path {} exists={} contents={}",
+                    logPrefix(),
+                    topologyName,
+                    namedTopologyDir.getAbsolutePath(),
+                    namedTopologyDir.exists(),
+                    namedTopologyDir.exists() && namedTopologyDir.isDirectory()
+                            ? Arrays.stream(Objects.requireNonNullElse(namedTopologyDir.listFiles(), new File[0]))
+                            .map(File::getName)
+                            .collect(Collectors.toList())
+                            : Collections.emptyList()
+            );
             Utils.delete(namedTopologyDir);
+            log.info("{} Finished clearing local state for NamedTopology {} at path {} existsNow={}",
+                    logPrefix(),
+                    topologyName,
+                    namedTopologyDir.getAbsolutePath(),
+                    namedTopologyDir.exists()
+            );
         } catch (final IOException e) {
             log.error("Hit an unexpected error while clearing local state for topology " + topologyName, e);
             throw new StreamsException("Unable to delete state for the named topology " + topologyName,

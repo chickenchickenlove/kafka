@@ -1895,9 +1895,20 @@ public class TaskManager {
     }
 
     void maybeCloseTasksFromRemovedTopologies(final Set<String> currentNamedTopologies) {
+        log.info("ASH maybeCloseTasksFromRemovedTopologies: currentNamedTopologies={}, initializedTasks={}",
+                currentNamedTopologies,
+                tasks.allInitializedTasks().stream()
+                        .map(task -> String.format("%s[state=%s,active=%s,input=%s]",
+                                task.id(), task.state(), task.isActive(), task.inputPartitions()))
+                        .collect(Collectors.toList())
+        );
         try {
             final Set<StreamTask> activeTasksToRemove = new TreeSet<>(Comparator.comparing(Task::id));
             final Set<StandbyTask> standbyTasksToRemove = new TreeSet<>(Comparator.comparing(Task::id));
+            log.info("ASH maybeCloseTasksFromRemovedTopologies: tasks selected for removal. active={}, standby={}",
+                    activeTasksToRemove.stream().map(Task::id).collect(Collectors.toList()),
+                    standbyTasksToRemove.stream().map(Task::id).collect(Collectors.toList())
+            );
             for (final Task task : tasks.allInitializedTasks()) {
                 if (!currentNamedTopologies.contains(task.id().topologyName())) {
                     if (task.isActive()) {
@@ -1910,11 +1921,24 @@ public class TaskManager {
 
             final Set<TaskId> allTaskIdsToRemove = Stream.concat(activeTasksToRemove.stream(), standbyTasksToRemove.stream()).map(Task::id).collect(Collectors.toSet());
             closeAndCleanUpTasks(activeTasksToRemove, standbyTasksToRemove, true);
+            log.info("ASH maybeCloseTasksFromRemovedTopologies: after closeAndCleanUpTasks, remaining initializedTasks={}",
+                    tasks.allInitializedTasks().stream()
+                            .map(task -> String.format("%s[state=%s,active=%s]", task.id(), task.state(), task.isActive()))
+                            .collect(Collectors.toList())
+            );
             releaseLockedDirectoriesForTasks(allTaskIdsToRemove);
         } catch (final Exception e) {
             // TODO KAFKA-12648: for now just swallow the exception to avoid interfering with the other topologies
             //  that are running alongside, but eventually we should be able to rethrow up to the handler to inform
             //  the user of an error in this named topology without killing the thread and delaying the others
+            log.error("ASH Caught exception while closing removed topology tasks. currentNamedTopologies={}, remaining initializedTasks={}",
+                    currentNamedTopologies,
+                    tasks.allInitializedTasks().stream()
+                            .map(task -> String.format("%s[state=%s,active=%s,input=%s]",
+                                    task.id(), task.state(), task.isActive(), task.inputPartitions()))
+                            .collect(Collectors.toList()),
+                    e
+            );
             log.error("Caught the following exception while closing tasks from a removed topology:", e);
         }
     }

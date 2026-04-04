@@ -235,7 +235,17 @@ public class KafkaStreamsNamedTopologyWrapper extends KafkaStreams {
             .collect(Collectors.toSet());
 
         topologyMetadata.unregisterTopology(removeTopologyFuture, topologyToRemove);
-
+        log.info("ASH After unregisterTopology({}), remaining topologies={}, local thread metadata={}",
+                topologyToRemove,
+                topologyMetadata.namedTopologiesView(),
+                metadataForLocalThreads().stream().map(t -> String.format(
+                        "%s active=%s standby=%s",
+                        t.threadName(),
+                        t.activeTasks().stream().map(task -> task.taskId().toString()).collect(Collectors.toList()),
+                        t.standbyTasks().stream().map(task -> task.taskId().toString()).collect(Collectors.toList())
+                )).collect(Collectors.toList())
+        );
+        
         final boolean skipResetForUnstartedApplication =
             maybeCompleteFutureIfStillInCREATED(removeTopologyFuture, "removing topology " + topologyToRemove);
 
@@ -369,6 +379,16 @@ public class KafkaStreamsNamedTopologyWrapper extends KafkaStreams {
         if (getTopologyByName(name).isPresent()) {
             throw new IllegalStateException("Can't clean up local state for an active NamedTopology: " + name);
         }
+        log.info("ASH About to clean up named topology {}. local thread metadata={}, all topologies={}",
+                name,
+                metadataForLocalThreads().stream().map(t -> String.format(
+                        "%s active=%s standby=%s",
+                        t.threadName(),
+                        t.activeTasks().stream().map(task -> task.taskId().toString()).collect(Collectors.toList()),
+                        t.standbyTasks().stream().map(task -> task.taskId().toString()).collect(Collectors.toList())
+                )).collect(Collectors.toList()),
+                topologyMetadata.namedTopologiesView()
+        );
         stateDirectory.clearLocalStateForNamedTopology(name);
     }
 
