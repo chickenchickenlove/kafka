@@ -1139,20 +1139,71 @@ public class TaskManager {
     }
 
     private void revokeTasksInStateUpdater(final Set<TopicPartition> remainingRevokedPartitions) {
+        log.info("ASH revokeTasksInStateUpdater start: revokedPartitions={} stateUpdaterTasks={} initializedTasks={}",
+                remainingRevokedPartitions,
+                stateUpdater.tasks().stream()
+                        .map(task -> String.format("%s[state=%s,active=%s,input=%s]",
+                                task.id(), task.state(), task.isActive(), task.inputPartitions()))
+                        .collect(Collectors.toList()),
+                tasks.allInitializedTasks().stream()
+                        .map(task -> String.format("%s[state=%s,active=%s,input=%s]",
+                                task.id(), task.state(), task.isActive(), task.inputPartitions()))
+                        .collect(Collectors.toList())
+        );
         final Map<TaskId, CompletableFuture<StateUpdater.RemovedTaskResult>> futures = new LinkedHashMap<>();
         final Map<TaskId, RuntimeException> failedTasksFromStateUpdater = new HashMap<>();
         for (final Task restoringTask : stateUpdater.tasks()) {
+            log.info("ASH revokeTasksInStateUpdater inspect: task={} state={} active={} input={} shouldRevoke={}",
+                    restoringTask.id(),
+                    restoringTask.state(),
+                    restoringTask.isActive(),
+                    restoringTask.inputPartitions(),
+                    restoringTask.isActive() && remainingRevokedPartitions.containsAll(restoringTask.inputPartitions())
+            );
             if (restoringTask.isActive()) {
                 if (remainingRevokedPartitions.containsAll(restoringTask.inputPartitions())) {
                     futures.put(restoringTask.id(), stateUpdater.remove(restoringTask.id(), StandbyUpdateListener.SuspendReason.MIGRATED));
+                    log.info("ASH revokeTasksInStateUpdater queued-remove: task={} remainingRevokedPartitions={}",
+                            restoringTask.id(),
+                            remainingRevokedPartitions
+                    );
                     remainingRevokedPartitions.removeAll(restoringTask.inputPartitions());
                 }
             }
         }
         getNonFailedTasks(futures, failedTasksFromStateUpdater).forEach(task -> {
+            log.info("ASH revokeTasksInStateUpdater remove-result: task={} stateBeforeSuspend={} initializedTasksBeforeAdd={}",
+                    task.id(),
+                    task.state(),
+                    tasks.allInitializedTasks().stream()
+                            .map(t -> String.format("%s[state=%s,active=%s]", t.id(), t.state(), t.isActive()))
+                            .collect(Collectors.toList())
+            );
             task.suspend();
+            log.info("ASH revokeTasksInStateUpdater suspended: task={} stateAfterSuspend={}",
+                    task.id(),
+                    task.state()
+            );
             tasks.addActiveTask((StreamTask) task);
+            log.info("ASH revokeTasksInStateUpdater added-back-to-registry: task={} initializedTasksAfterAdd={}",
+                    task.id(),
+                    tasks.allInitializedTasks().stream()
+                            .map(t -> String.format("%s[state=%s,active=%s]", t.id(), t.state(), t.isActive()))
+                            .collect(Collectors.toList())
+            );
         });
+
+        log.info("ASH revokeTasksInStateUpdater end: remainingRevokedPartitions={} initializedTasks={} stateUpdaterTasks={}",
+                remainingRevokedPartitions,
+                tasks.allInitializedTasks().stream()
+                        .map(task -> String.format("%s[state=%s,active=%s,input=%s]",
+                                task.id(), task.state(), task.isActive(), task.inputPartitions()))
+                        .collect(Collectors.toList()),
+                stateUpdater.tasks().stream()
+                        .map(task -> String.format("%s[state=%s,active=%s,input=%s]",
+                                task.id(), task.state(), task.isActive(), task.inputPartitions()))
+                        .collect(Collectors.toList())
+        );
 
         maybeThrowTaskExceptions(failedTasksFromStateUpdater);
     }
@@ -1629,6 +1680,11 @@ public class TaskManager {
         ret.putAll(tasks.allInitializedTasksPerId());
         ret.putAll(tasks.pendingTasksToInit().stream().collect(Collectors.toMap(Task::id, x -> x)));
         return ret;
+    }
+
+    // VisibleForTesting
+    boolean hasAnyTaskForTopology(final String topologyName) {
+        return allTasks().keySet().stream().anyMatch(taskId -> topologyName.equals(taskId.topologyName()));
     }
 
     /**
