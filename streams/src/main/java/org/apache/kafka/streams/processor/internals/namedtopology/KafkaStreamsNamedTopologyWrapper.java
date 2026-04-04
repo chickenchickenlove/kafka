@@ -423,6 +423,13 @@ public class KafkaStreamsNamedTopologyWrapper extends KafkaStreams {
         }
     }
 
+    // VisibleForTesting
+    public boolean allLocalTasksRunningForTopology(final String topologyName) {
+        synchronized (threads) {
+            return threads.stream().anyMatch(thread -> thread.allTasksRunningForTopology(topologyName));
+        }
+    }
+
     public String getFullTopologyDescription() {
         return topologyMetadata.topologyDescriptionString();
     }

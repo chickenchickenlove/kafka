@@ -1687,6 +1687,25 @@ public class TaskManager {
         return allTasks().keySet().stream().anyMatch(taskId -> topologyName.equals(taskId.topologyName()));
     }
 
+    // VisibleForTesting
+    boolean allTasksRunningForTopology(final String topologyName) {
+        final Map<TaskId, Task> allTasks = allTasks();
+        final Set<TaskId> initializedTaskIds = tasks.allInitializedTaskIds();
+        boolean foundTaskForTopology = false;
+
+        for (final Map.Entry<TaskId, Task> entry : allTasks.entrySet()) {
+            final TaskId taskId = entry.getKey();
+            if (topologyName.equals(taskId.topologyName())) {
+                foundTaskForTopology = true;
+                if (!initializedTaskIds.contains(taskId) || entry.getValue().state() != State.RUNNING) {
+                    return false;
+                }
+            }
+        }
+
+        return foundTaskForTopology;
+    }
+
     /**
      * Returns tasks owned by the stream thread.
      * This does not return any tasks currently owned by the state updater.
