@@ -522,8 +522,8 @@ public class DefaultStateUpdater implements StateUpdater {
                 taskId,
                 updatingTasks.keySet(),
                 pausedTasks.keySet(),
-                DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
-                DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
+                restoredActiveTasks.stream().map(Task::id).collect(Collectors.toList()),
+                exceptionsAndFailedTasks.stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
         }
 
         private void removeTask(final TaskId taskId,
@@ -566,8 +566,8 @@ public class DefaultStateUpdater implements StateUpdater {
                 task.id(),
                 updatingTasks.keySet(),
                 pausedTasks.keySet(),
-                DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
-                DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
+                restoredActiveTasks.stream().map(Task::id).collect(Collectors.toList()),
+                exceptionsAndFailedTasks.stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
             future.complete(new RemovedTaskResult(task));
             return true;
         }
@@ -594,8 +594,8 @@ public class DefaultStateUpdater implements StateUpdater {
                 task.id(),
                 updatingTasks.keySet(),
                 pausedTasks.keySet(),
-                DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
-                DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
+                restoredActiveTasks.stream().map(Task::id).collect(Collectors.toList()),
+                exceptionsAndFailedTasks.stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
             future.complete(new RemovedTaskResult(task));
             return true;
         }
@@ -620,8 +620,8 @@ public class DefaultStateUpdater implements StateUpdater {
                             restoredTask.id(),
                             updatingTasks.keySet(),
                             pausedTasks.keySet(),
-                            DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
-                            DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
+                            restoredActiveTasks.stream().map(Task::id).collect(Collectors.toList()),
+                            exceptionsAndFailedTasks.stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
                         future.complete(new RemovedTaskResult(restoredTask));
                         return true;
                     }
@@ -647,8 +647,8 @@ public class DefaultStateUpdater implements StateUpdater {
                             failedTask.id(),
                             updatingTasks.keySet(),
                             pausedTasks.keySet(),
-                            DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
-                            DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
+                            restoredActiveTasks.stream().map(Task::id).collect(Collectors.toList()),
+                            exceptionsAndFailedTasks.stream().map(t -> t.task().id()).collect(Collectors.toList()));
                         future.complete(new RemovedTaskResult(failedTask, exceptionAndTask.exception()));
                         return true;
                     }
@@ -675,8 +675,8 @@ public class DefaultStateUpdater implements StateUpdater {
                     task.id(),
                     updatingTasks.keySet(),
                     pausedTasks.keySet(),
-                    DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
-                    DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
+                    restoredActiveTasks.stream().map(Task::id).collect(Collectors.toList()),
+                    exceptionsAndFailedTasks.stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
 
             } catch (final StreamsException streamsException) {
                 handleStreamsExceptionWithTask(streamsException, taskId);
@@ -701,8 +701,8 @@ public class DefaultStateUpdater implements StateUpdater {
                 task.id(),
                 updatingTasks.keySet(),
                 pausedTasks.keySet(),
-                DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
-                DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
+                restoredActiveTasks.stream().map(Task::id).collect(Collectors.toList()),
+                exceptionsAndFailedTasks.stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
         }
 
         private boolean isStateless(final Task task) {
@@ -719,8 +719,8 @@ public class DefaultStateUpdater implements StateUpdater {
                         restoredChangelogs,
                         updatingTasks.keySet(),
                         pausedTasks.keySet(),
-                        DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
-                        DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
+                        restoredActiveTasks.stream().map(Task::id).collect(Collectors.toList()),
+                        exceptionsAndFailedTasks.stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
                     measureCheckpointLatency(() -> task.maybeCheckpoint());
                     changelogReader.unregister(changelogPartitions);
                     addToRestoredTasks(task);
@@ -729,16 +729,16 @@ public class DefaultStateUpdater implements StateUpdater {
                         task.id(),
                         updatingTasks.keySet(),
                         pausedTasks.keySet(),
-                        DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
-                        DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
+                        restoredActiveTasks.stream().map(Task::id).collect(Collectors.toList()),
+                        exceptionsAndFailedTasks.stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
                     transitToUpdateStandbysIfOnlyStandbysLeft();
                 } catch (final StreamsException streamsException) {
                     log.error("ASH state-updater restoration failed: task={} updating={} paused={} restored={} failed={}",
                         task.id(),
                         updatingTasks.keySet(),
                         pausedTasks.keySet(),
-                        DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
-                        DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()),
+                        restoredActiveTasks.stream().map(Task::id).collect(Collectors.toList()),
+                        exceptionsAndFailedTasks.stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()),
                         streamsException);
                     handleStreamsExceptionWithTask(streamsException, task.id());
                 }
@@ -761,8 +761,8 @@ public class DefaultStateUpdater implements StateUpdater {
                     task.id(),
                     updatingTasks.keySet(),
                     pausedTasks.keySet(),
-                    DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
-                    DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
+                    restoredActiveTasks.stream().map(Task::id).collect(Collectors.toList()),
+                    exceptionsAndFailedTasks.stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
                 restoredActiveTasksCondition.signalAll();
             } finally {
                 restoredActiveTasksLock.unlock();
