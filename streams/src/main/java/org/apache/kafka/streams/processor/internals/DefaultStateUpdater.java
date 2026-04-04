@@ -518,6 +518,12 @@ public class DefaultStateUpdater implements StateUpdater {
                     }
                 }
             }
+            log.info("ASH state-updater add: task={} updating={} paused={} restored={} failed={}",
+                taskId,
+                updatingTasks.keySet(),
+                pausedTasks.keySet(),
+                DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
+                DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
         }
 
         private void removeTask(final TaskId taskId,
@@ -556,6 +562,12 @@ public class DefaultStateUpdater implements StateUpdater {
             }
             log.info((task.isActive() ? "Active" : "Standby")
                 + " task " + task.id() + " was removed from the updating tasks.");
+            log.info("ASH state-updater remove-updating: task={} updating={} paused={} restored={} failed={}",
+                task.id(),
+                updatingTasks.keySet(),
+                pausedTasks.keySet(),
+                DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
+                DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
             future.complete(new RemovedTaskResult(task));
             return true;
         }
@@ -578,6 +590,12 @@ public class DefaultStateUpdater implements StateUpdater {
             pausedTasks.remove(taskId);
             log.info((task.isActive() ? "Active" : "Standby")
                 + " task " + task.id() + " was removed from the paused tasks.");
+            log.info("ASH state-updater remove-paused: task={} updating={} paused={} restored={} failed={}",
+                task.id(),
+                updatingTasks.keySet(),
+                pausedTasks.keySet(),
+                DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
+                DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
             future.complete(new RemovedTaskResult(task));
             return true;
         }
@@ -598,6 +616,12 @@ public class DefaultStateUpdater implements StateUpdater {
                         iterator.remove();
                         log.info((restoredTask.isActive() ? "Active" : "Standby")
                             + " task " + restoredTask.id() + " was removed from the restored tasks.");
+                        log.info("ASH state-updater remove-restored: task={} updating={} paused={} restored={} failed={}",
+                            restoredTask.id(),
+                            updatingTasks.keySet(),
+                            pausedTasks.keySet(),
+                            DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
+                            DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
                         future.complete(new RemovedTaskResult(restoredTask));
                         return true;
                     }
@@ -619,6 +643,12 @@ public class DefaultStateUpdater implements StateUpdater {
                         iterator.remove();
                         log.info((failedTask.isActive() ? "Active" : "Standby")
                             + " task " + failedTask.id() + " was removed from the failed tasks.");
+                        log.info("ASH state-updater remove-failed: task={} updating={} paused={} restored={} failed={}",
+                            failedTask.id(),
+                            updatingTasks.keySet(),
+                            pausedTasks.keySet(),
+                            DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
+                            DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
                         future.complete(new RemovedTaskResult(failedTask, exceptionAndTask.exception()));
                         return true;
                     }
@@ -641,6 +671,12 @@ public class DefaultStateUpdater implements StateUpdater {
                 }
                 log.info((task.isActive() ? "Active" : "Standby")
                     + " task " + task.id() + " was paused from the updating tasks and added to the paused tasks.");
+                log.info("ASH state-updater pause: task={} updating={} paused={} restored={} failed={}",
+                    task.id(),
+                    updatingTasks.keySet(),
+                    pausedTasks.keySet(),
+                    DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
+                    DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
 
             } catch (final StreamsException streamsException) {
                 handleStreamsExceptionWithTask(streamsException, taskId);
@@ -661,6 +697,12 @@ public class DefaultStateUpdater implements StateUpdater {
                     changelogReader.transitToUpdateStandby();
                 }
             }
+            log.info("ASH state-updater resume: task={} updating={} paused={} restored={} failed={}",
+                task.id(),
+                updatingTasks.keySet(),
+                pausedTasks.keySet(),
+                DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
+                DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
         }
 
         private boolean isStateless(final Task task) {
@@ -672,12 +714,32 @@ public class DefaultStateUpdater implements StateUpdater {
             final Collection<TopicPartition> changelogPartitions = task.changelogPartitions();
             if (restoredChangelogs.containsAll(changelogPartitions)) {
                 try {
+                    log.info("ASH state-updater maybe-complete-restoration: task={} restoredChangelogs={} updating={} paused={} restored={} failed={}",
+                        task.id(),
+                        restoredChangelogs,
+                        updatingTasks.keySet(),
+                        pausedTasks.keySet(),
+                        DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
+                        DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
                     measureCheckpointLatency(() -> task.maybeCheckpoint());
                     changelogReader.unregister(changelogPartitions);
                     addToRestoredTasks(task);
                     log.info("Stateful active task " + task.id() + " completed restoration");
+                    log.info("ASH state-updater restored: task={} updating={} paused={} restored={} failed={}",
+                        task.id(),
+                        updatingTasks.keySet(),
+                        pausedTasks.keySet(),
+                        DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
+                        DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
                     transitToUpdateStandbysIfOnlyStandbysLeft();
                 } catch (final StreamsException streamsException) {
+                    log.error("ASH state-updater restoration failed: task={} updating={} paused={} restored={} failed={}",
+                        task.id(),
+                        updatingTasks.keySet(),
+                        pausedTasks.keySet(),
+                        DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
+                        DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()),
+                        streamsException);
                     handleStreamsExceptionWithTask(streamsException, task.id());
                 }
             }
@@ -695,6 +757,12 @@ public class DefaultStateUpdater implements StateUpdater {
                 restoredActiveTasks.add(task);
                 updatingTasks.remove(task.id());
                 log.debug("Active task " + task.id() + " was added to the restored tasks");
+                log.info("ASH state-updater add-restored: task={} updating={} paused={} restored={} failed={}",
+                    task.id(),
+                    updatingTasks.keySet(),
+                    pausedTasks.keySet(),
+                    DefaultStateUpdater.this.restoredActiveTasks().stream().map(Task::id).collect(Collectors.toList()),
+                    DefaultStateUpdater.this.exceptionsAndFailedTasks().stream().map(exceptionAndTask -> exceptionAndTask.task().id()).collect(Collectors.toList()));
                 restoredActiveTasksCondition.signalAll();
             } finally {
                 restoredActiveTasksLock.unlock();

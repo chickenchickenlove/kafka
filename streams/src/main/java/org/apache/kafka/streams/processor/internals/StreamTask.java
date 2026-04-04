@@ -276,6 +276,8 @@ public class StreamTask extends AbstractTask implements ProcessorNodePunctuator,
 
             transitionTo(State.RESTORING);
 
+            log.info("ASH task lifecycle: action=initializeIfNeeded task={} state={} inputPartitions={}",
+                id(), state(), inputPartitions());
             log.info("Initialized");
         }
     }
@@ -295,6 +297,8 @@ public class StreamTask extends AbstractTask implements ProcessorNodePunctuator,
                 return;
 
             case RESTORING:
+                log.info("ASH task lifecycle: action=completeRestoration task={} state={} inputPartitions={}",
+                    id(), state(), inputPartitions());
                 resetOffsetsIfNeededAndInitializeMetadata(offsetResetter);
                 initializeTopology();
                 processorContext.initialize();
@@ -320,10 +324,8 @@ public class StreamTask extends AbstractTask implements ProcessorNodePunctuator,
 
     @Override
     public void suspend() {
-        if ("topology-1".equals(id().topologyName())) {
-            log.info("ASH DEBUG named-topology task lifecycle: action=suspend task={} state={} inputPartitions={}",
-                    id(), state(), inputPartitions());
-        }
+        log.info("ASH task lifecycle: action=suspend task={} state={} inputPartitions={}",
+            id(), state(), inputPartitions());
         switch (state()) {
             case CREATED:
                 transitToSuspend();
@@ -429,10 +431,8 @@ public class StreamTask extends AbstractTask implements ProcessorNodePunctuator,
      */
     @Override
     public Map<TopicPartition, OffsetAndMetadata> prepareCommit(final boolean clean) {
-        if ("topology-1".equals(id().topologyName())) {
-            log.info("ASH DEBUG named-topology task lifecycle: action=prepareCommit task={} state={} inputPartitions={}",
-                    id(), state(), inputPartitions());
-        }
+        log.info("ASH task lifecycle: action=prepareCommit task={} state={} inputPartitions={}",
+            id(), state(), inputPartitions());
         switch (state()) {
             case CREATED:
             case RESTORING:
@@ -561,10 +561,8 @@ public class StreamTask extends AbstractTask implements ProcessorNodePunctuator,
 
     @Override
     public void closeClean() {
-        if ("topology-1".equals(id().topologyName())) {
-            log.info("ASH DEBUG named-topology task lifecycle: action=closeClean task={} state={} inputPartitions={}",
-                    id(), state(), inputPartitions());
-        }
+        log.info("ASH task lifecycle: action=closeClean task={} state={} inputPartitions={}",
+            id(), state(), inputPartitions());
         validateClean();
         removeAllSensors();
         clearCommitStatuses();
@@ -574,6 +572,8 @@ public class StreamTask extends AbstractTask implements ProcessorNodePunctuator,
 
     @Override
     public void closeDirty() {
+        log.info("ASH task lifecycle: action=closeDirty task={} state={} inputPartitions={}",
+            id(), state(), inputPartitions());
         removeAllSensors();
         clearCommitStatuses();
         close(false);

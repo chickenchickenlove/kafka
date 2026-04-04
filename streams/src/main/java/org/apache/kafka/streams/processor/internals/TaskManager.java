@@ -1895,11 +1895,11 @@ public class TaskManager {
     }
 
     void maybeCloseTasksFromRemovedTopologies(final Set<String> currentNamedTopologies) {
-        log.info("ASH maybeCloseTasksFromRemovedTopologies: currentNamedTopologies={}, initializedTasks={}",
+        log.info("ASH maybeCloseTasksFromRemovedTopologies start: currentNamedTopologies={}, initializedTasks={}",
                 currentNamedTopologies,
                 tasks.allInitializedTasks().stream()
-                        .map(task -> String.format("%s[state=%s,active=%s,input=%s]",
-                                task.id(), task.state(), task.isActive(), task.inputPartitions()))
+                        .map(task -> String.format("%s[state=%s,active=%s,topology=%s,input=%s]",
+                                task.id(), task.state(), task.isActive(), task.id().topologyName(), task.inputPartitions()))
                         .collect(Collectors.toList())
         );
         try {
@@ -1910,7 +1910,10 @@ public class TaskManager {
                     standbyTasksToRemove.stream().map(Task::id).collect(Collectors.toList())
             );
             for (final Task task : tasks.allInitializedTasks()) {
-                if (!currentNamedTopologies.contains(task.id().topologyName())) {
+                final boolean shouldRemove = !currentNamedTopologies.contains(task.id().topologyName());
+                log.info("ASH removed-topology sweep inspect: task={} state={} active={} topology={} shouldRemove={}",
+                        task.id(), task.state(), task.isActive(), task.id().topologyName(), shouldRemove);
+                if (shouldRemove) {
                     if (task.isActive()) {
                         activeTasksToRemove.add((StreamTask) task);
                     } else {
@@ -1919,26 +1922,34 @@ public class TaskManager {
                 }
             }
 
+            log.info("ASH removed-topology sweep selected: activeToRemove={}, standbyToRemove={}",
+                    activeTasksToRemove.stream().map(Task::id).collect(Collectors.toList()),
+                    standbyTasksToRemove.stream().map(Task::id).collect(Collectors.toList())
+            );
+
             final Set<TaskId> allTaskIdsToRemove = Stream.concat(activeTasksToRemove.stream(), standbyTasksToRemove.stream()).map(Task::id).collect(Collectors.toSet());
             closeAndCleanUpTasks(activeTasksToRemove, standbyTasksToRemove, true);
-            log.info("ASH maybeCloseTasksFromRemovedTopologies: after closeAndCleanUpTasks, remaining initializedTasks={}",
+            log.info("ASH maybeCloseTasksFromRemovedTopologies end: remainingInitializedTasks={}",
                     tasks.allInitializedTasks().stream()
-                            .map(task -> String.format("%s[state=%s,active=%s]", task.id(), task.state(), task.isActive()))
+                            .map(task -> String.format("%s[state=%s,active=%s,topology=%s]",
+                                    task.id(), task.state(), task.isActive(), task.id().topologyName()))
                             .collect(Collectors.toList())
             );
+
             releaseLockedDirectoriesForTasks(allTaskIdsToRemove);
         } catch (final Exception e) {
             // TODO KAFKA-12648: for now just swallow the exception to avoid interfering with the other topologies
             //  that are running alongside, but eventually we should be able to rethrow up to the handler to inform
             //  the user of an error in this named topology without killing the thread and delaying the others
-            log.error("ASH Caught exception while closing removed topology tasks. currentNamedTopologies={}, remaining initializedTasks={}",
+            log.error("ASH removed-topology sweep failed: currentNamedTopologies={}, remainingInitializedTasks={}",
                     currentNamedTopologies,
                     tasks.allInitializedTasks().stream()
-                            .map(task -> String.format("%s[state=%s,active=%s,input=%s]",
-                                    task.id(), task.state(), task.isActive(), task.inputPartitions()))
+                            .map(task -> String.format("%s[state=%s,active=%s,topology=%s,input=%s]",
+                                    task.id(), task.state(), task.isActive(), task.id().topologyName(), task.inputPartitions()))
                             .collect(Collectors.toList()),
                     e
             );
+
             log.error("Caught the following exception while closing tasks from a removed topology:", e);
         }
     }

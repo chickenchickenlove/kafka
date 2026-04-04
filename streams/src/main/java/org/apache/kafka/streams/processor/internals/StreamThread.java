@@ -1411,15 +1411,32 @@ public class StreamThread extends Thread implements ProcessingThread {
     // Check if the topology has been updated since we last checked, ie via #addNamedTopology or #removeNamedTopology
     private void checkForTopologyUpdates() {
         if (topologyMetadata.isEmpty() || topologyMetadata.needsUpdate(getName())) {
-            log.info("StreamThread has detected an update to the topology");
+            log.info("ASH stream-thread topology update detected: thread={} state={} version={} activeTasks={} standbyTasks={}",
+                getName(),
+                state(),
+                topologyMetadata.topologyVersion(),
+                taskManager.activeTaskMap().keySet(),
+                taskManager.standbyTaskMap().keySet());
 
             taskManager.handleTopologyUpdates();
+
+            log.info("ASH stream-thread topology update handled: thread={} state={} version={} activeTasks={} standbyTasks={}",
+                getName(),
+                state(),
+                topologyMetadata.topologyVersion(),
+                taskManager.activeTaskMap().keySet(),
+                taskManager.standbyTaskMap().keySet());
 
             topologyMetadata.maybeWaitForNonEmptyTopology(() -> state);
 
             // We don't need to manually trigger a rebalance to pick up tasks from the new topology, as
             // a rebalance will always occur when the metadata is updated after a change in subscription
-            log.info("Updating consumer subscription following topology update");
+            log.info("ASH stream-thread updating subscription after topology update: thread={} state={} version={} activeTasks={} standbyTasks={}",
+                getName(),
+                state(),
+                topologyMetadata.topologyVersion(),
+                taskManager.activeTaskMap().keySet(),
+                taskManager.standbyTaskMap().keySet());
             subscribeConsumer();
         }
     }

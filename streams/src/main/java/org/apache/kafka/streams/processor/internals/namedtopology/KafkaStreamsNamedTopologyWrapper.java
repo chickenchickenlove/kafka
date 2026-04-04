@@ -234,17 +234,31 @@ public class KafkaStreamsNamedTopologyWrapper extends KafkaStreams {
             .filter(t -> topologyMetadata.sourceTopicsForTopology(topologyToRemove).contains(t.topic()))
             .collect(Collectors.toSet());
 
-        topologyMetadata.unregisterTopology(removeTopologyFuture, topologyToRemove);
-        log.info("ASH After unregisterTopology({}), remaining topologies={}, local thread metadata={}",
+        log.info("ASH removeNamedTopology start: remove={}, currentTopologies={}, localThreads={}",
                 topologyToRemove,
                 topologyMetadata.namedTopologiesView(),
                 metadataForLocalThreads().stream().map(t -> String.format(
-                        "%s active=%s standby=%s",
+                        "%s state=%s active=%s standby=%s",
                         t.threadName(),
+                        t.threadState(),
                         t.activeTasks().stream().map(task -> task.taskId().toString()).collect(Collectors.toList()),
                         t.standbyTasks().stream().map(task -> task.taskId().toString()).collect(Collectors.toList())
                 )).collect(Collectors.toList())
         );
+        topologyMetadata.unregisterTopology(removeTopologyFuture, topologyToRemove);
+
+        log.info("ASH after unregisterTopology({}): remainingTopologies={}, localThreads={}",
+                topologyToRemove,
+                topologyMetadata.namedTopologiesView(),
+                metadataForLocalThreads().stream().map(t -> String.format(
+                        "%s state=%s active=%s standby=%s",
+                        t.threadName(),
+                        t.threadState(),
+                        t.activeTasks().stream().map(task -> task.taskId().toString()).collect(Collectors.toList()),
+                        t.standbyTasks().stream().map(task -> task.taskId().toString()).collect(Collectors.toList())
+                )).collect(Collectors.toList())
+        );
+
         
         final boolean skipResetForUnstartedApplication =
             maybeCompleteFutureIfStillInCREATED(removeTopologyFuture, "removing topology " + topologyToRemove);
@@ -390,6 +404,16 @@ public class KafkaStreamsNamedTopologyWrapper extends KafkaStreams {
                 topologyMetadata.namedTopologiesView()
         );
         stateDirectory.clearLocalStateForNamedTopology(name);
+        log.info("ASH Finished clean up named topology {}. local thread metadata={}, all topologies={}",
+                name,
+                metadataForLocalThreads().stream().map(t -> String.format(
+                        "%s active=%s standby=%s",
+                        t.threadName(),
+                        t.activeTasks().stream().map(task -> task.taskId().toString()).collect(Collectors.toList()),
+                        t.standbyTasks().stream().map(task -> task.taskId().toString()).collect(Collectors.toList())
+                )).collect(Collectors.toList()),
+                topologyMetadata.namedTopologiesView()
+        );
     }
 
     public String getFullTopologyDescription() {
