@@ -103,7 +103,7 @@ class DynamicConnectionQuotaTest extends BaseRequestTest {
     val maxConnectionsPerIPOverride = 7
     props.put(SocketServerConfigs.MAX_CONNECTIONS_PER_IP_OVERRIDES_CONFIG, s"localhost:$maxConnectionsPerIPOverride")
     reconfigureServers(props, perBrokerConfig = false, (SocketServerConfigs.MAX_CONNECTIONS_PER_IP_OVERRIDES_CONFIG, s"localhost:$maxConnectionsPerIPOverride"))
-    waitForMaxConnectionsOverrideApplied("127.0.0.0", maxConnectionsPerIPOverride)
+    waitForMaxConnectionsOverrideApplied("127.0.0.1", maxConnectionsPerIPOverride)
 
     verifyMaxConnections(maxConnectionsPerIPOverride, connectAndVerify)
   }
