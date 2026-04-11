@@ -27,12 +27,12 @@ Configuration:
 
   Loggers:
     Root:
-      level: "OFF"
+      level: DEBUG
       AppenderRef:
         - ref: STDOUT
     Logger:
       - name: org.apache.kafka
-        level: ERROR
+        level: DEBUG
       # We are testing for a particular INFO log message in CommonNameLoggingTrustManagerFactoryWrapper
       - name: org.apache.kafka.common.security.ssl.CommonNameLoggingTrustManagerFactoryWrapper
         level: INFO
