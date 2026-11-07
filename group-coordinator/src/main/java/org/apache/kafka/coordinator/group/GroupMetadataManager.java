@@ -2532,16 +2532,15 @@ public class GroupMetadataManager {
                                                 final StreamsGroup group,
                                                 final List<CoordinatorRecord> records) {
         if (topology != null) {
-            StreamsTopology streamsTopologyFromRequest = StreamsTopology.fromHeartbeatRequest(topology);
             if (group.topology().isEmpty()) {
                 log.info("[GroupId {}][MemberId {}] Member initialized the topology with epoch {}", groupId, memberId, topology.epoch());
                 StreamsGroupTopologyValue recordValue = convertToStreamsGroupTopologyRecord(topology);
                 records.add(newStreamsGroupTopologyRecord(groupId, recordValue));
-                return streamsTopologyFromRequest;
+                return StreamsTopology.fromRecord(recordValue);
             } else if (group.topology().get().topologyEpoch() > topology.epoch()) {
                 log.info("[GroupId {}][MemberId {}] Member joined with stale topology epoch {}", groupId, memberId, topology.epoch());
                 return group.topology().get();
-            } else if (!group.topology().get().equals(streamsTopologyFromRequest)) {
+            } else if (!group.topology().get().matches(topology)) {
                 if (group.topology().get().topologyEpoch() == topology.epoch()) {
                     throw new StreamsInvalidTopologyEpochException(String.format(
                         "The topology sent by the member differs from the group's topology with the same epoch %d. " +
@@ -10068,10 +10067,8 @@ public class GroupMetadataManager {
      * (the first entry of {@code group.streams.assignors}) is used. If the selected assignor is no
      * longer registered on the broker, the coordinator falls back to the default.
      *
-     * @param groupId         The group id.
      * @param maybeLogWarning Whether to warn about the fallback. Set to false on read-only paths such as
      *                        describe, which would otherwise log on every request.
-     * @return The assignor of the streams group.
      */
     // Visible for testing
     TaskAssignor streamsGroupAssignor(String groupId, boolean maybeLogWarning) {
@@ -10196,7 +10193,7 @@ public class GroupMetadataManager {
      * @param groupId   The group id.
      * @param memberId  The member id.
      *
-     * @return the join key.
+     * @return the sync key.
      */
     static String consumerGroupJoinKey(String groupId, String memberId) {
         return "join-" + groupId + "-" + memberId;
